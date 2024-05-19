@@ -1,0 +1,3 @@
+lib/*
+bin/*
+config/config.yaml

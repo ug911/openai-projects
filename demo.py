@@ -68,4 +68,4 @@ demo = gr.TabbedInterface(
     css=CSS
 )
 
-demo.launch()
+demo.launch(auth=("admin", "pass1234"))

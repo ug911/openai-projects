@@ -8,19 +8,18 @@ class MongoConnect:
     def __init__(self):
         with open("configs/config.yaml", "r") as f:
             cx = yaml.safe_load(f)
-        self.uri = "mongodb+srv://utkgupta:LkIYOetsRhtfpEjE@cluster1.jfg2evg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1"
         self.uri = "mongodb+srv://{uname}:{pwd}@{mongo_host}/?retryWrites=true&w=majority&appName=Cluster1".format(
-            uname=cx['mongo_username'],
-            pwd=cx['mongo_password'],
-            mongo_host=cx['mongo_host']
+            uname=cx['mongo']['username'],
+            pwd=cx['mongo']['password'],
+            mongo_host=cx['mongo']['host']
         )
         self.client = MongoClient(self.uri)
         try:
             self.client.admin.command('ping')
         except Exception as e:
             print(e)
-        self.db = self.client["openai-projects"]
-        self.collection = self.db["interview-bot-chats"]
+        self.db = self.client[cx['mongo']['database']]
+        self.collection = self.db[cx['mongo']['collection']]
         self.object_id = None
 
     def create_new(self):

@@ -1,3 +1,6 @@
 lib/*
 bin/*
 config/config.yaml
+openai-projects-venv/*
+.ipynb_checkpoints/
+__pycache__/

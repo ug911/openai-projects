@@ -1,0 +1,8 @@
+mongo:
+  username: <Your mongo username>
+  password: <Your mongo password>
+  host: <Your mongo host>
+  database: <Your mongo database>
+  collection: <Your mongo collection>
+openai:
+  api_key: <Your openai key>

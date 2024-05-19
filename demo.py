@@ -17,7 +17,18 @@ div#chatbot-column {
 """
 
 
-with gr.Blocks(title = "Inputs") as inputs:
+def initiate_session(session_name):
+    interview_assistant.mongo_client.update({"$set": {"session_name": session_name}})
+    session_id = interview_assistant.object_id
+    return session_id
+
+
+with gr.Blocks(title="Interview Details") as session_details:
+    gr.Interface(initiate_session,
+                 inputs="textbox",
+                 outputs="textbox")
+
+with gr.Blocks(title="Inputs") as inputs:
     with gr.Row():
         gr.Markdown('### Inputs')
         with gr.Column(scale=4):
@@ -63,9 +74,9 @@ with gr.Blocks(title="Analyse the Skills") as analysis:
 
 demo = gr.TabbedInterface(
     title="Interview Bot",
-    interface_list=[inputs, chat, analysis],
-    tab_names=["Inputs", "Chat", "Analysis"],
+    interface_list=[session_details, inputs, chat, analysis],
+    tab_names=["1. Session Details", "2. Inputs", "3. Chat", "4. Analysis"],
     css=CSS
 )
 
-demo.launch(auth=("admin", "pass1234"))
+demo.launch()

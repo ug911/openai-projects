@@ -1,18 +1,22 @@
 import yaml
 import openai
 import gradio as gr
+from datetime import datetime
+from mongo_connect import MongoConnect
 
 
 class InterviewAssistant:
     def __init__(self):
         # Initialize any necessary attributes or resources here
-        with open("configs/TJ_OPENAI_KEY.yaml", "r") as f:
+        with open("configs/config.yaml", "r") as f:
             cx = yaml.safe_load(f)
 
         self.client = openai.OpenAI(
             # This is the default and can be omitted
-            api_key=cx['openai_api_key'],
+            api_key=cx['openai']['api_key'],
         )
+        self.mongo_client = MongoConnect()
+        self.object_id = self.mongo_client.create_new()
         self.assistant_instructions = None
         self.questions = None
         self.skills = None
@@ -21,7 +25,7 @@ class InterviewAssistant:
         self.assistant_id = self.get_assistant(name="Interview Assistant")
         pass
 
-    def chat_completion(self, messages, model="gpt-3.5-turbo"):
+    def chat_completion(self, messages, key, model="gpt-3.5-turbo"):
         """
         Generates skills for the employee based on input parameters.
 
@@ -38,6 +42,17 @@ class InterviewAssistant:
             model=model,
         )
         response = chat_completion.choices[0].message.to_dict()['content']
+        self.mongo_client.update({
+            "$addToSet": {
+                "runs": {
+                    "run_at": datetime.now(),
+                    "key": key,
+                    "messages": messages,
+                    "model": model,
+                    "response": chat_completion.to_dict()
+                }
+            }
+        })
         return response
 
     def get_assistant(self, name="Interview Assistant"):
@@ -84,7 +99,7 @@ class InterviewAssistant:
                 model="gpt-3.5-turbo"
             )
             assistant_id = assistant.to_dict().get('id')
-
+        self.mongo_client.update({"$set": {"assistant_id": assistant_id}})
         return assistant_id
 
     def generate_questions(self, company_info, designation, department):
@@ -113,7 +128,7 @@ class InterviewAssistant:
         }]
 
         # Use OpenAI chat completion to generate questions
-        self.questions = self.chat_completion(messages)
+        self.questions = self.chat_completion(messages, key='questions')
         return prompt, self.questions
 
     def generate_skills(self, company_info, designation, department):
@@ -143,7 +158,7 @@ class InterviewAssistant:
         }]
 
         # Use OpenAI chat completion to generate skills
-        self.skills = self.chat_completion(messages)
+        self.skills = self.chat_completion(messages, key='skills')
         return prompt, self.skills
 
     def respond_assistant(self, message, history):
@@ -177,7 +192,7 @@ class InterviewAssistant:
         completion_messages += [{"role": "user", "content": message}]
 
         # Use OpenAI chat completion to generate a response
-        response = self.chat_completion(completion_messages)
+        response = self.chat_completion(completion_messages, key='chat')
         self.conversation_messages = completion_messages + [{"role": "assistant", "content": response}]
         return response
 
@@ -253,6 +268,6 @@ class InterviewAssistant:
         }]
 
         # Use OpenAI chat completion to generate skills
-        self.analysis = self.chat_completion(messages)
+        self.analysis = self.chat_completion(messages, key='analysis')
         return self.analysis
 

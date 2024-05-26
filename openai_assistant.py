@@ -23,15 +23,16 @@ class InterviewAssistant:
         self.conversation_messages = []
         self.analysis = None
         self.assistant_id = self.get_assistant(name="Interview Assistant")
+        self.model = cx['openai'].get('model', 'gpt-3.5-turbo')
         pass
 
-    def chat_completion(self, messages, key, model="gpt-3.5-turbo"):
+    def chat_completion(self, messages, key):
         """
         Generates skills for the employee based on input parameters.
 
         Args:
             messages: Array of user, assistant and system messages
-            model: Model to be used for chat completion
+            key: Specify the type of task that the chat completion is being used for
 
         Returns:
             str: Generated response
@@ -39,7 +40,7 @@ class InterviewAssistant:
         print(messages)
         chat_completion = self.client.chat.completions.create(
             messages=messages,
-            model=model,
+            model=self.model,
         )
         response = chat_completion.choices[0].message.to_dict()['content']
         self.mongo_client.update({
@@ -48,7 +49,7 @@ class InterviewAssistant:
                     "run_at": datetime.now(),
                     "key": key,
                     "messages": messages,
-                    "model": model,
+                    "model": self.model,
                     "response": chat_completion.to_dict()
                 }
             }
@@ -119,9 +120,20 @@ class InterviewAssistant:
             raise gr.Error("Can not generate questions without Company, Designation and Department")
 
         # Create a prompt based on input parameters and use chat completion to generate questions
-        prompt = ("What should be the questions that you can ask to find out the skills that a " +
-                  "{designation} in {department} has who is working in a {company}?").format(
-                designation=designation, department=department, company=company_info)
+        prompt = '''
+        You are an expert interviewer and have conducted various skill assessment interviews for tech people from all over the world.
+        You have help me interview a person who is {designation} in {department} working in a {company}. 
+        My main objective is to identfy the skill this person has. 
+        Give me a set of 10 questions I should ask this person such that I should be able to assess the skills this person has.
+        Note the Following:
+        1. I want you to generate questions which a friend would ask another friend. 
+        2. Do not be intrusive, the questions should not feel as if those questions are meant to judge them 
+        3. Ask encouraging questions which gets people excited to answer, giving them a chance to brag and highlight achievements
+        4. Be Highly informal in your tone but make sure you are always appropriate with no foul language
+        5. Ask general questions related to their designation to see their interest and expertise level.
+        6. Ask at least 2 questions about any programming languages, frameworks or tools used in everyday work and used in general.''' \
+            .format(designation=designation, department=department, company=company_info)
+
         messages = [{
             "role": "user",
             "content": prompt
@@ -149,7 +161,7 @@ class InterviewAssistant:
 
         # Create a prompt based on input parameters and use chat completion to generate questions
         prompt = ("What should be skills that a {designation} in {department} should have who is working in a " +
-                  "{company}? Please provide the category and skills inside that category").format(
+                  "{company}? Provide the categories and skills inside those categories").format(
             designation=designation, department=department, company=company_info)
 
         messages = [{
